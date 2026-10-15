@@ -115,3 +115,63 @@ public class Main extends Application {
         panel.setStyle("-fx-background-color: white; -fx-border-color: #CCCCCC; -fx-border-radius: 5;");
         return panel;
     }
+    private void runQueueLogic(int numCustomers, double minArr, double maxArr, double minSrv, double maxSrv) {
+        customers.clear();
+        double prevArrTime = 0;
+        double prevSrvEnd = 0;
+
+        // Accumulators for queue statistics
+        double totalWait = 0;
+        double totalSysTime = 0;
+        double totalSrvTime = 0;
+        double totalIat = 0;          // sum of IATs for customers 2..n
+        int customersWaited = 0;
+
+        int departed = 0;
+        int startedSrv = 0;
+
+        for (int i = 1; i <= numCustomers; i++) {
+            // Customer 1 arrives at time 0 (no IAT). Others get a uniform IAT on (minArr, maxArr).
+            double iat;
+            double arrTime;
+            if (i == 1) {
+                iat = 0;
+                arrTime = 0;
+            } else {
+                iat = minArr + randomGenerator.nextDouble() * (maxArr - minArr);
+                arrTime = prevArrTime + iat;
+                totalIat += iat;
+            }
+
+            // Uniformly distributed service time
+            double srvTime = minSrv + randomGenerator.nextDouble() * (maxSrv - minSrv);
+
+            // Queue formulas
+            double srvStart = Math.max(arrTime, prevSrvEnd);
+            double srvEnd = srvStart + srvTime;
+            double waitTime = srvStart - arrTime;
+            double timeInSys = srvEnd - arrTime;
+
+            // Calculate current states for table representation
+            while (departed < customers.size() && customers.get(departed).getServiceEndTime() <= arrTime) departed++;
+            while (startedSrv < customers.size() && customers.get(startedSrv).getServiceStartTime() <= arrTime) startedSrv++;
+
+            int inSystem = i - departed;
+            int inQueue = i - 1 - startedSrv;
+
+            if (waitTime > 0) {
+                customersWaited++;
+                inQueue++;
+            }
+
+            customers.add(new BankCustomer(i, iat, arrTime, srvTime, srvStart, srvEnd, inSystem, inQueue, waitTime, timeInSys));
+
+            // Accumulate totals
+            totalWait += waitTime;
+            totalSysTime += timeInSys;
+            totalSrvTime += srvTime;
+
+            prevArrTime = arrTime;
+            prevSrvEnd = srvEnd;
+        }
+
