@@ -4,148 +4,117 @@ import javafx.application.Application;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 
 public class Main extends Application {
 
-    private static final String BLUE = "#1D4E89";
-    private static final String RED = "#C62828";
+    private final Random randomGenerator = new Random();
+    private final ObservableList<BankCustomer> customers = FXCollections.observableArrayList();
 
-    private final TextField iatMinField = new TextField("1");
-    private final TextField iatMaxField = new TextField("7");
-    private final TextField serviceMinField = new TextField("1");
-    private final TextField serviceMaxField = new TextField("6");
-    private final TextField customersField = new TextField("20");
+    private TableView<BankCustomer> resultsTable;
+    private VBox statisticsPanel;
 
-    private final TableView<Customer> table = new TableView<>();
-    private final TextArea statisticsArea = new TextArea();
+    private TextField customerCountField;
+    private TextField minArrivalField;
+    private TextField maxArrivalField;
+    private TextField minServiceField;
+    private TextField maxServiceField;
 
     @Override
     public void start(Stage stage) {
-        stage.setTitle("Bank Queue Simulation");
+        // 1. Header & Group Members
+        Label title = new Label("BANK QUEUE SIMULATION");
+        title.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+        
+        Label BBITGroup = new Label("BBIT Group D");
+        BBITGroup.setFont(Font.font("Arial", FontWeight.BOLD, 20));
+        BBITGroup.setStyle("-fx-text-fill: #1D4E89;");
 
-        // Main heading
-        Label heading = new Label("BANK QUEUE SIMULATION");
-        heading.setStyle(
-                "-fx-font-size: 24px;"
-                + "-fx-font-weight: bold;"
-                + "-fx-text-fill: " + BLUE + ";"
-        );
-
-        // Group members
         Label groupMembers = new Label(
-                "Andrew Mutero - 150736, "
-                + "Saketh Kenchem - 152324, "
-                + "Murji Viqarhussein - 193642, "
-                + "Mark Kipruto - 169386, "
-                + "Lewis Kamunjeru - 155669"
+                "Andrew Mutero - 150736  |  Saketh Kenchem - 152324  |  " +
+                "Kumaylali Murji Viqarhussein - 193642  |  Mark Kipruto - 169386  |  Lewis Kamunjeru - 155669"
         );
-        groupMembers.setStyle(
-                "-fx-font-size: 13px;"
-                + "-fx-text-fill: " + RED + ";"
-                + "-fx-font-weight: bold;"
-        );
+        groupMembers.setStyle("-fx-font-size: 13px; -fx-text-fill: #555555;");
 
-        // Input fields
-        GridPane inputs = new GridPane();
-        inputs.setHgap(12);
-        inputs.setVgap(10);
-        inputs.setPadding(new Insets(12));
+        VBox header = new VBox(5, title, BBITGroup, groupMembers);
+        header.setPadding(new Insets(10, 0, 10, 0));
 
-        addInput(inputs, 0, "IAT Minimum (min):", iatMinField);
-        addInput(inputs, 1, "IAT Maximum (min):", iatMaxField);
-        addInput(inputs, 2, "Service Minimum (min):", serviceMinField);
-        addInput(inputs, 3, "Service Maximum (min):", serviceMaxField);
-        addInput(inputs, 4, "Number of Customers:", customersField);
+        // 2. Input Panel
+        VBox inputPanel = createInputPanel();
 
-        Button simulateButton = new Button("Run Simulation");
-        Button clearButton = new Button("Clear");
+        // 3. Results Table (Left Side)
+        resultsTable = new TableView<>();
+        resultsTable.setItems(customers);
+        resultsTable.setPlaceholder(new Label("Run the simulation to display data."));
+        setupResultsTable();
+        HBox.setHgrow(resultsTable, Priority.ALWAYS); // Ensures table gets maximum space
 
-        simulateButton.setDefaultButton(true);
-        simulateButton.setStyle(
-                "-fx-background-color: " + BLUE + ";"
-                + "-fx-text-fill: white;"
-                + "-fx-font-weight: bold;"
-        );
+        // 4. Statistics Panel (Right Side, Simple Text)
+        statisticsPanel = new VBox(10);
+        statisticsPanel.setMinWidth(250);
+        statisticsPanel.setPadding(new Insets(0, 0, 0, 15));
+        
+        Label statsTitle = new Label("Queue Statistics");
+        statsTitle.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+        statisticsPanel.getChildren().add(statsTitle);
 
-        clearButton.setStyle(
-                "-fx-background-color: " + RED + ";"
-                + "-fx-text-fill: white;"
-                + "-fx-font-weight: bold;"
-        );
+        // Layout holding Table and Stats side-by-side
+        HBox tableAndStats = new HBox(10, resultsTable, statisticsPanel);
+        VBox.setVgrow(tableAndStats, Priority.ALWAYS);
 
-        simulateButton.setOnAction(e -> {
-            try {
-                double iatMin
-                        = readPositive(iatMinField, "IAT minimum");
-                double iatMax
-                        = readPositive(iatMaxField, "IAT maximum");
-                double serviceMin
-                        = readPositive(serviceMinField, "Service minimum");
-                double serviceMax
-                        = readPositive(serviceMaxField, "Service maximum");
+        // Main Layout
+        VBox mainLayout = new VBox(15, header, inputPanel, tableAndStats);
+        mainLayout.setPadding(new Insets(20));
+        mainLayout.setStyle("-fx-background-color: #F5F7FA;");
 
-                int n = Integer.parseInt(
-                        customersField.getText().trim());
+        Scene scene = new Scene(mainLayout, 1200, 750);
+        stage.setTitle("Bank Queue Simulation");
+        stage.setScene(scene);
+        stage.show();
+    }
 
-                if (iatMax <= iatMin) {
-                    throw new IllegalArgumentException(
-                            "IAT maximum must be greater than IAT minimum.");
-                }
+    private VBox createInputPanel() {
+        customerCountField = createInputField("20");
+        minArrivalField = createInputField("1");
+        maxArrivalField = createInputField("7");
+        minServiceField = createInputField("1");
+        maxServiceField = createInputField("6");
 
-                if (serviceMax <= serviceMin) {
-                    throw new IllegalArgumentException(
-                            "Service maximum must be greater than service minimum.");
-                }
+        GridPane grid = new GridPane();
+        grid.setHgap(20);
+        grid.setVgap(5);
 
-                if (n < 1 || n > 1000000) {
-                    throw new IllegalArgumentException(
-                            "Customers must be between 1 and 1,000,000.");
-                }
+        addInputField(grid, "No. of Customers:", customerCountField, 0);
+        addInputField(grid, "Min Arrival Time:", minArrivalField, 1);
+        addInputField(grid, "Max Arrival Time:", maxArrivalField, 2);
+        addInputField(grid, "Min Service Time:", minServiceField, 3);
+        addInputField(grid, "Max Service Time:", maxServiceField, 4);
 
-                simulate(iatMin, iatMax, serviceMin, serviceMax, n);
+        Button runButton = new Button("Run Simulation");
+        runButton.setStyle("-fx-background-color: #1D4E89; -fx-text-fill: white; -fx-font-weight: bold;");
+        runButton.setOnAction(e -> startSimulation());
 
-            } catch (NumberFormatException ex) {
-                showError("Enter valid numeric values in all fields.");
-            } catch (IllegalArgumentException ex) {
-                showError(ex.getMessage());
-            }
-        });
+        Button clearButton = new Button("Clear Results");
+        clearButton.setStyle("-fx-background-color: #C62828; -fx-text-fill: white; -fx-font-weight: bold;");
+        clearButton.setOnAction(e -> clearResults());
 
-        clearButton.setOnAction(e -> {
-            table.getItems().clear();
-            statisticsArea.clear();
-        });
-
-        HBox buttons = new HBox(10, simulateButton, clearButton);
+        HBox buttons = new HBox(10, runButton, clearButton);
         buttons.setAlignment(Pos.CENTER_LEFT);
 
-        VBox inputPanel = new VBox(
-                10, new Label("Simulation Inputs"), inputs, buttons);
-        inputPanel.setPadding(new Insets(10));
-        inputPanel.setStyle(
-                "-fx-background-color: #EAF1FA;"
-                + "-fx-border-color: " + BLUE + ";"
-                + "-fx-border-radius: 5;"
-        );
-
-        // Simulation results table
-        configureTable();
-
-        Label tableHeading = new Label("Simulation Results");
-        tableHeading.setStyle(
-                "-fx-font-size: 16px;"
-                + "-fx-font-weight: bold;"
-                + "-fx-text-fill: " + BLUE + ";"
-        );
+        VBox panel = new VBox(10, grid, buttons);
+        panel.setPadding(new Insets(15));
+        panel.setStyle("-fx-background-color: white; -fx-border-color: #CCCCCC; -fx-border-radius: 5;");
+        return panel;
+    }
