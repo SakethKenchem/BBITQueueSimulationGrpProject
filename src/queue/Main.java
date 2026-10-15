@@ -45,10 +45,10 @@ public class Main extends Application {
 
         // Group members
         Label groupMembers = new Label(
-                "Andrew Mutero - 150736\n"
-                + "Saketh Kenchem - 152324\n"
-                + "Murji Viqarhussein - 193642\n"
-                + "Mark Kipruto - 169386\n"
+                "Andrew Mutero - 150736, "
+                + "Saketh Kenchem - 152324, "
+                + "Murji Viqarhussein - 193642, "
+                + "Mark Kipruto - 169386, "
                 + "Lewis Kamunjeru - 155669"
         );
         groupMembers.setStyle(
