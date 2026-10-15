@@ -246,4 +246,53 @@ public class Main extends Application {
             prevArrTime = arrTime;
             prevSrvEnd = srvEnd;
         }
+        private void addStatLine(String title, String value) {
+        Label label = new Label(title + value);
+        label.setStyle("-fx-font-size: 14px; -fx-padding: 5 0 5 0;");
+        statisticsPanel.getChildren().add(label);
+    }
+
+    private void clearResults() {
+        customers.clear();
+        resetStatisticsPanel();
+    }
+
+    private void showError(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR, message, ButtonType.OK);
+        alert.showAndWait();
+    }
+
+    public static class BankCustomer {
+        private final SimpleIntegerProperty customerNumber, customersInSystem, customersInQueue;
+        private final SimpleDoubleProperty interArrivalTime, arrivalTime, serviceTime, serviceStartTime, serviceEndTime, waitingTime, totalTimeInSystem;
+
+        public BankCustomer(int cNum, double iat, double arrTime, double srvTime, double srvStart, double srvEnd, int inSys, int inQ, double wait, double totSys) {
+            this.customerNumber = new SimpleIntegerProperty(cNum);
+            this.interArrivalTime = new SimpleDoubleProperty(iat);
+            this.arrivalTime = new SimpleDoubleProperty(arrTime);
+            this.serviceTime = new SimpleDoubleProperty(srvTime);
+            this.serviceStartTime = new SimpleDoubleProperty(srvStart);
+            this.serviceEndTime = new SimpleDoubleProperty(srvEnd);
+            this.customersInSystem = new SimpleIntegerProperty(inSys);
+            this.customersInQueue = new SimpleIntegerProperty(inQ);
+            this.waitingTime = new SimpleDoubleProperty(wait);
+            this.totalTimeInSystem = new SimpleDoubleProperty(totSys);
+        }
+
+        public int getCustomerNumber() { return customerNumber.get(); }
+        public double getInterArrivalTime() { return interArrivalTime.get(); }
+        public double getArrivalTime() { return arrivalTime.get(); }
+        public double getServiceTime() { return serviceTime.get(); }
+        public double getServiceStartTime() { return serviceStartTime.get(); }
+        public double getServiceEndTime() { return serviceEndTime.get(); }
+        public int getCustomersInSystem() { return customersInSystem.get(); }
+        public int getCustomersInQueue() { return customersInQueue.get(); }
+        public double getWaitingTime() { return waitingTime.get(); }
+        public double getTotalTimeInSystem() { return totalTimeInSystem.get(); }
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
 
