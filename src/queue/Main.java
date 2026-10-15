@@ -115,6 +115,78 @@ public class Main extends Application {
         panel.setStyle("-fx-background-color: white; -fx-border-color: #CCCCCC; -fx-border-radius: 5;");
         return panel;
     }
+    
+        private TextField createInputField(String defaultValue) {
+        TextField field = new TextField(defaultValue);
+        field.setPrefWidth(90);
+        return field;
+    }
+
+    private void addInputField(GridPane grid, String labelText, TextField field, int column) {
+        Label label = new Label(labelText);
+        label.setStyle("-fx-font-weight: bold;");
+        grid.add(label, column, 0);
+        grid.add(field, column, 1);
+    }
+
+    private void setupResultsTable() {
+        addTableColumn("Customer", "customerNumber");
+        addTableColumn("IAT", "interArrivalTime");
+        addTableColumn("Arrival Time", "arrivalTime");
+        addTableColumn("Service Time", "serviceTime");
+        addTableColumn("Service Starts", "serviceStartTime");
+        addTableColumn("Service Ends", "serviceEndTime");
+        addTableColumn("In System", "customersInSystem");
+        addTableColumn("In Queue", "customersInQueue");
+        addTableColumn("Waiting Time", "waitingTime");
+        addTableColumn("Time in System", "totalTimeInSystem");
+    }
+
+    private void addTableColumn(String title, String property) {
+        TableColumn<BankCustomer, Object> col = new TableColumn<>(title);
+        col.setCellValueFactory(new PropertyValueFactory<>(property));
+        col.setStyle("-fx-alignment: CENTER;");
+
+        final boolean isIatColumn = property.equals("interArrivalTime");
+
+        col.setCellFactory(tc -> new TableCell<>() {
+            @Override
+            protected void updateItem(Object item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else if (isIatColumn && getIndex() == 0) {
+                    // Customer 1 arrives at time 0, so it has no inter-arrival time
+                    setText("-");
+                } else if (item instanceof Double) {
+                    setText(String.format(Locale.US, "%.2f", item));
+                } else {
+                    setText(item.toString());
+                }
+            }
+        });
+        resultsTable.getColumns().add(col);
+    }
+
+    private void startSimulation() {
+        try {
+            int numCustomers = Integer.parseInt(customerCountField.getText().trim());
+            double minArr = Double.parseDouble(minArrivalField.getText().trim());
+            double maxArr = Double.parseDouble(maxArrivalField.getText().trim());
+            double minSrv = Double.parseDouble(minServiceField.getText().trim());
+            double maxSrv = Double.parseDouble(maxServiceField.getText().trim());
+
+            if (maxArr <= minArr || maxSrv <= minSrv || numCustomers < 1) {
+                showError("Invalid input. Maximums must exceed minimums, and customers must be > 0.");
+                return;
+            }
+
+            runQueueLogic(numCustomers, minArr, maxArr, minSrv, maxSrv);
+        } catch (NumberFormatException e) {
+            showError("Please enter valid numbers in all fields.");
+        }
+    }
+
     private void runQueueLogic(int numCustomers, double minArr, double maxArr, double minSrv, double maxSrv) {
         customers.clear();
         double prevArrTime = 0;
