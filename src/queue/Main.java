@@ -37,7 +37,7 @@ public class Main extends Application {
         // 1. Header & Group Members
         Label title = new Label("BANK QUEUE SIMULATION");
         title.setFont(Font.font("Arial", FontWeight.BOLD, 24));
-        
+
         Label BBITGroup = new Label("BBIT Group D");
         BBITGroup.setFont(Font.font("Arial", FontWeight.BOLD, 20));
         BBITGroup.setStyle("-fx-text-fill: #1D4E89;");
@@ -63,12 +63,9 @@ public class Main extends Application {
 
         // 4. Statistics Panel (Right Side, Simple Text)
         statisticsPanel = new VBox(10);
-        statisticsPanel.setMinWidth(250);
+        statisticsPanel.setMinWidth(300);
         statisticsPanel.setPadding(new Insets(0, 0, 0, 15));
-        
-        Label statsTitle = new Label("Queue Statistics");
-        statsTitle.setFont(Font.font("Arial", FontWeight.BOLD, 18));
-        statisticsPanel.getChildren().add(statsTitle);
+        resetStatisticsPanel();
 
         // Layout holding Table and Stats side-by-side
         HBox tableAndStats = new HBox(10, resultsTable, statisticsPanel);
@@ -79,7 +76,7 @@ public class Main extends Application {
         mainLayout.setPadding(new Insets(20));
         mainLayout.setStyle("-fx-background-color: #F5F7FA;");
 
-        Scene scene = new Scene(mainLayout, 1200, 750);
+        Scene scene = new Scene(mainLayout, 1250, 780);
         stage.setTitle("Bank Queue Simulation");
         stage.setScene(scene);
         stage.show();
