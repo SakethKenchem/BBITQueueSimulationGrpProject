@@ -59,12 +59,13 @@ public class Main extends Application {
         resultsTable.setItems(customers);
         resultsTable.setPlaceholder(new Label("Run the simulation to display data."));
         setupResultsTable();
-        HBox.setHgrow(resultsTable, Priority.ALWAYS); // Ensures table gets maximum space
+        HBox.setHgrow(resultsTable, Priority.ALWAYS);
 
         // 4. Statistics Panel (Right Side, Simple Text)
         statisticsPanel = new VBox(10);
-        statisticsPanel.setMinWidth(300);
-        statisticsPanel.setPadding(new Insets(0, 0, 0, 15));
+        statisticsPanel.setMinWidth(320);
+        statisticsPanel.setPadding(new Insets(10));
+        statisticsPanel.setStyle("-fx-background-color: white; -fx-border-color: #CCCCCC; -fx-border-radius: 5;");
         resetStatisticsPanel();
 
         // Layout holding Table and Stats side-by-side
@@ -76,7 +77,7 @@ public class Main extends Application {
         mainLayout.setPadding(new Insets(20));
         mainLayout.setStyle("-fx-background-color: #F5F7FA;");
 
-        Scene scene = new Scene(mainLayout, 1250, 780);
+        Scene scene = new Scene(mainLayout, 1300, 780);
         stage.setTitle("Bank Queue Simulation");
         stage.setScene(scene);
         stage.show();
@@ -116,7 +117,7 @@ public class Main extends Application {
         return panel;
     }
     
-        private TextField createInputField(String defaultValue) {
+    private TextField createInputField(String defaultValue) {
         TextField field = new TextField(defaultValue);
         field.setPrefWidth(90);
         return field;
@@ -156,7 +157,6 @@ public class Main extends Application {
                 if (empty || item == null) {
                     setText(null);
                 } else if (isIatColumn && getIndex() == 0) {
-                    // Customer 1 arrives at time 0, so it has no inter-arrival time
                     setText("-");
                 } else if (item instanceof Double) {
                     setText(String.format(Locale.US, "%.2f", item));
@@ -192,18 +192,16 @@ public class Main extends Application {
         double prevArrTime = 0;
         double prevSrvEnd = 0;
 
-        // Accumulators for queue statistics
         double totalWait = 0;
         double totalSysTime = 0;
         double totalSrvTime = 0;
-        double totalIat = 0;          // sum of IATs for customers 2..n
+        double totalIat = 0;
         int customersWaited = 0;
 
         int departed = 0;
         int startedSrv = 0;
 
         for (int i = 1; i <= numCustomers; i++) {
-            // Customer 1 arrives at time 0 (no IAT). Others get a uniform IAT on (minArr, maxArr).
             double iat;
             double arrTime;
             if (i == 1) {
@@ -215,16 +213,13 @@ public class Main extends Application {
                 totalIat += iat;
             }
 
-            // Uniformly distributed service time
             double srvTime = minSrv + randomGenerator.nextDouble() * (maxSrv - minSrv);
 
-            // Queue formulas
             double srvStart = Math.max(arrTime, prevSrvEnd);
             double srvEnd = srvStart + srvTime;
             double waitTime = srvStart - arrTime;
             double timeInSys = srvEnd - arrTime;
 
-            // Calculate current states for table representation
             while (departed < customers.size() && customers.get(departed).getServiceEndTime() <= arrTime) departed++;
             while (startedSrv < customers.size() && customers.get(startedSrv).getServiceStartTime() <= arrTime) startedSrv++;
 
@@ -238,7 +233,6 @@ public class Main extends Application {
 
             customers.add(new BankCustomer(i, iat, arrTime, srvTime, srvStart, srvEnd, inSystem, inQueue, waitTime, timeInSys));
 
-            // Accumulate totals
             totalWait += waitTime;
             totalSysTime += timeInSys;
             totalSrvTime += srvTime;
@@ -246,7 +240,46 @@ public class Main extends Application {
             prevArrTime = arrTime;
             prevSrvEnd = srvEnd;
         }
-        private void addStatLine(String title, String value) {
+
+        double simTime = prevSrvEnd;
+        
+        double avgWait = totalWait / numCustomers;
+        double avgSysTime = totalSysTime / numCustomers;
+        double avgQueueLen = totalWait / simTime;
+        double avgSysNum = totalSysTime / simTime;
+        double probWait = ((double) customersWaited / numCustomers) * 100;
+        double util = (totalSrvTime / simTime) * 100;
+        
+        double avgSrvTime = totalSrvTime / numCustomers;
+        double avgIat = (numCustomers > 1) ? totalIat / (numCustomers - 1) : Double.NaN;
+        double probIdle = 100 - util;
+        double avgWaitOfWaiters = (customersWaited > 0) ? totalWait / customersWaited : 0;
+
+        resetStatisticsPanel();
+        addStatLine("Avg Waiting Time: ", formatMins(avgWait));
+        addStatLine("Avg Wait (those who waited): ", formatMins(avgWaitOfWaiters));
+        addStatLine("Avg Time in System: ", formatMins(avgSysTime));
+        addStatLine("Avg Service Time: ", formatMins(avgSrvTime));
+        addStatLine("Avg Inter-Arrival Time: ", Double.isNaN(avgIat) ? "N/A" : formatMins(avgIat));
+        addStatLine("Avg Queue Length: ", String.format(Locale.US, "%.2f people", avgQueueLen));
+        addStatLine("Avg Num in System: ", String.format(Locale.US, "%.2f people", avgSysNum));
+        addStatLine("Probability of Waiting: ", String.format(Locale.US, "%.2f %%", probWait));
+        addStatLine("Probability Server Idle: ", String.format(Locale.US, "%.2f %%", probIdle));
+        addStatLine("Server Utilization: ", String.format(Locale.US, "%.2f %%", util));
+    }
+
+    private String formatMins(double value) {
+        return String.format(Locale.US, "%.2f mins", value);
+    }
+
+    private void resetStatisticsPanel() {
+        statisticsPanel.getChildren().clear();
+        Label statsTitle = new Label("Queue Statistics");
+        statsTitle.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+        statisticsPanel.getChildren().add(statsTitle);
+    }
+
+    private void addStatLine(String title, String value) {
         Label label = new Label(title + value);
         label.setStyle("-fx-font-size: 14px; -fx-padding: 5 0 5 0;");
         statisticsPanel.getChildren().add(label);
@@ -295,4 +328,3 @@ public class Main extends Application {
         launch(args);
     }
 }
-
